@@ -18,8 +18,8 @@
 #include <WiFiUdp.h>
 
 // ========= CONFIGURACIÓN WIFI Y RED ==========
-#define WIFI_SSID "doorLS"        // Cambia a tu SSID WiFi
-#define WIFI_PASSWORD "LSDoor2023*"   // Cambia a tu contraseña WiFi
+#define WIFI_SSID "Tu SSID"        // Cambia a tu SSID WiFi
+#define WIFI_PASSWORD "Tu Password"   // Cambia a tu contraseña WiFi
 #define SERVER_PORT 5010             // Puerto estándar de dispositivos Anviz
 
 // ========= CONFIGURACIÓN DE PINES ===========
