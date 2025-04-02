@@ -18,9 +18,9 @@
 #include <WiFiUdp.h>
 
 // ========= CONFIGURACIÓN WIFI Y RED ==========
-#define WIFI_SSID "Tu SSID"        // Cambia a tu SSID WiFi
-#define WIFI_PASSWORD "Tu Password"   // Cambia a tu contraseña WiFi
-#define SERVER_PORT 5010             // Puerto estándar de dispositivos Anviz
+const char* wifi_ssid = "Tu_SSID";  // Tu SSID WiFi con espacios
+const char* wifi_password = "Tu_Password";          // Tu contraseña WiFi
+#define SERVER_PORT 5010                           // Puerto estándar de dispositivos Anviz
 
 // ========= CONFIGURACIÓN DE PINES ===========
 #define PIN_D0 D7     // GPIO para Data0 del lector Wiegand
@@ -73,6 +73,35 @@ ICACHE_RAM_ATTR void handleD1() {
   }
 }
 
+// Función mejorada para conectar al WiFi
+bool connectWiFi() {
+  Serial.print("Conectando a WiFi: ");
+  Serial.println(wifi_ssid);
+  
+  WiFi.mode(WIFI_STA);
+  WiFi.persistent(false);
+  WiFi.begin(wifi_ssid, wifi_password);
+  
+  unsigned long startTime = millis();
+  uint8_t timeout = 30; // 30 segundos para timeout (más tiempo que antes)
+  
+  // Bucle mientras intentamos conectar
+  while (millis() - startTime < timeout * 1000) {
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("\nConectado a WiFi");
+      Serial.print("Dirección IP: ");
+      Serial.println(WiFi.localIP());
+      return true;
+    }
+    
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nError al conectar a WiFi - Timeout");
+  return false;
+}
+
 // ========= SETUP ===========
 void setup() {
   Serial.begin(115200);
@@ -116,22 +145,8 @@ void setup() {
   loadUsers();
   loadRecords();
   
-  // Conectar a WiFi
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Conectando a WiFi");
-  
-  int wifiTimeout = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiTimeout < 20) {
-    delay(500);
-    Serial.print(".");
-    wifiTimeout++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nConectado a WiFi");
-    Serial.print("Dirección IP: ");
-    Serial.println(WiFi.localIP());
-    
+  // Conectar a WiFi con el método mejorado
+  if (connectWiFi()) {
     // Configurar y arrancar servidor web
     setupWebServer();
     webServer.begin();
@@ -180,6 +195,21 @@ void loop() {
   
   // Revisar si hay tarjeta Wiegand
   checkWiegandCard();
+  
+  // Verificar si la conexión WiFi sigue activa, reconectar si es necesario
+  static unsigned long lastWifiCheck = 0;
+  if (millis() - lastWifiCheck > 30000) { // Verificar cada 30 segundos
+    lastWifiCheck = millis();
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("Conexión WiFi perdida, intentando reconectar...");
+      // Parpadear LED para indicar reconexión
+      digitalWrite(LED_PIN, HIGH);
+      delay(200);
+      digitalWrite(LED_PIN, LOW);
+      // Intentar reconectar
+      connectWiFi();
+    }
+  }
   
   // Actualizar tiempo NTP ocasionalmente
   static unsigned long lastNtpUpdate = 0;
