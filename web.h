@@ -1,21 +1,26 @@
 /**
  * web.h
  * Funciones para el servidor web del emulador Anviz
+ * Con soporte UTF-8 para caracteres internacionales
  */
 
 #ifndef WEB_H
 #define WEB_H
+
+// Variable para manejo de subida de archivos
+File uploadFile;
 
 // Declaración de funciones externas necesarias de utilidades.h
 extern String getFormattedDateTime();
 extern String formatTimestamp(uint32_t timestamp);
 extern void saveRecords();
 
-// ========= FUNCIONES DEL SERVIDOR WEB ==========='
+// ========= FUNCIONES DEL SERVIDOR WEB ===========
 
 // Página principal
 void handleRoot() {
-  String html = "<html><head><title>Emulador Anviz</title>";
+  String html = "<!DOCTYPE html><html><head><title>Emulador Anviz</title>";
+  html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }";
@@ -50,12 +55,14 @@ void handleRoot() {
   html += "</div>";
   html += "</body></html>";
   
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", html);
 }
 
 // Página de usuarios
 void handleUsers() {
-  String html = "<html><head><title>Usuarios - Emulador Anviz</title>";
+  String html = "<!DOCTYPE html><html><head><title>Usuarios - Emulador Anviz</title>";
+  html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }";
@@ -118,12 +125,14 @@ void handleUsers() {
   
   html += "</body></html>";
   
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", html);
 }
 
 // Página de registros de acceso
 void handleRecords() {
-  String html = "<html><head><title>Registros - Emulador Anviz</title>";
+  String html = "<!DOCTYPE html><html><head><title>Registros - Emulador Anviz</title>";
+  html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }";
@@ -202,12 +211,14 @@ void handleRecords() {
   
   html += "</body></html>";
   
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", html);
 }
 
 // Página de configuración
 void handleSettings() {
-  String html = "<html><head><title>Configuración - Emulador Anviz</title>";
+  String html = "<!DOCTYPE html><html><head><title>Configuración - Emulador Anviz</title>";
+  html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
   html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }";
@@ -237,8 +248,36 @@ void handleSettings() {
   html += "<tr><td>Versión de firmware</td><td>" + String(basicConfig.firmwareVersion) + "</td></tr>";
   html += "<tr><td>Número de serie</td><td>" + String(serialNumber) + "</td></tr>";
   html += "<tr><td>Volumen</td><td>" + String(basicConfig.volume) + "</td></tr>";
-  html += "<tr><td>Idioma</td><td>" + String(basicConfig.language) + "</td></tr>";
-  html += "<tr><td>Formato de fecha</td><td>" + String(basicConfig.dateFormat, HEX) + "</td></tr>";
+  
+  // Idioma con nombres en lugar de números
+  String languageName;
+  switch(basicConfig.language) {
+    case 0: languageName = "Chino Simplificado"; break;
+    case 1: languageName = "Chino Tradicional"; break;
+    case 2: languageName = "Inglés"; break;
+    case 3: languageName = "Francés"; break;
+    case 4: languageName = "Español"; break;
+    case 5: languageName = "Portugués"; break;
+    default: languageName = String(basicConfig.language); break;
+  }
+  html += "<tr><td>Idioma</td><td>" + languageName + "</td></tr>";
+  
+  // Formato de fecha con descripción
+  String dateFormat;
+  uint8_t dateFormatType = (basicConfig.dateFormat >> 4) & 0x0F;
+  uint8_t timeFormatType = basicConfig.dateFormat & 0x0F;
+  
+  switch(dateFormatType) {
+    case 0: dateFormat = "Formato Chino (YYYY-MM-DD)"; break;
+    case 1: dateFormat = "Formato Americano (MM/DD/YYYY)"; break;
+    case 2: dateFormat = "Formato Europeo (DD/MM/YYYY)"; break;
+    default: dateFormat = "Desconocido"; break;
+  }
+  
+  dateFormat += ", ";
+  dateFormat += (timeFormatType == 0) ? "24 horas" : "12 horas (AM/PM)";
+  
+  html += "<tr><td>Formato de fecha</td><td>" + dateFormat + "</td></tr>";
   
   // Comprobar si SPIFFS está disponible
   FSInfo fsInfo;
@@ -252,6 +291,7 @@ void handleSettings() {
   html += "</div>";
   html += "</body></html>";
   
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", html);
 }
 
@@ -267,7 +307,8 @@ void handleClearLogs() {
 
 // Manejar reinicio del dispositivo
 void handleReset() {
-  webServer.send(200, "text/html", "<html><head><meta http-equiv='refresh' content='5;url=/'></head><body><h2>Reiniciando el dispositivo...</h2><p>Volviendo al inicio en 5 segundos.</p></body></html>");
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+  webServer.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta http-equiv='refresh' content='5;url=/'></head><body><h2>Reiniciando el dispositivo...</h2><p>Volviendo al inicio en 5 segundos.</p></body></html>");
   delay(1000);
   ESP.restart();
 }
@@ -279,9 +320,35 @@ void handleFileUpload() {
   if (upload.status == UPLOAD_FILE_START) {
     String filename = "/upload_" + upload.filename;
     Serial.println("Iniciando carga: " + filename);
+    
+    // Abrir archivo para escritura
+    File file = SPIFFS.open(filename, "w");
+    if (!file) {
+      Serial.println("Error al abrir el archivo para escritura");
+      return;
+    }
+    
+    // Almacenar handle del archivo para escrituras posteriores
+    uploadFile = file;
+  }
+  else if (upload.status == UPLOAD_FILE_WRITE) {
+    // Escribir datos recibidos al archivo
+    if (uploadFile) {
+      uploadFile.write(upload.buf, upload.currentSize);
+    }
   }
   else if (upload.status == UPLOAD_FILE_END) {
-    Serial.println("Carga completada");
+    // Cerrar archivo
+    if (uploadFile) {
+      uploadFile.close();
+      Serial.println("Carga completada: " + String(upload.totalSize) + " bytes");
+    }
+  }
+  else if (upload.status == UPLOAD_FILE_ABORTED) {
+    Serial.println("Carga abortada");
+    if (uploadFile) {
+      uploadFile.close();
+    }
   }
 }
 
