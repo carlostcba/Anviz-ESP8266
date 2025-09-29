@@ -4,8 +4,10 @@
  * Con soporte UTF-8 para caracteres internacionales
  */
 
-#ifndef WEB_H
-#define WEB_H
+
+// Prototipos de funciones de utilidad
+String uint64ToString(uint64_t input);
+int findUserById(uint8_t* id);
 
 // Variable para manejo de subida de archivos
 File uploadFile;
@@ -14,6 +16,31 @@ File uploadFile;
 extern String getFormattedDateTime();
 extern String formatTimestamp(uint32_t timestamp);
 extern void saveRecords();
+
+// ========= FUNCIONES DE UTILIDAD ===========
+
+// Función para convertir uint64_t a String
+String uint64ToString(uint64_t input) {
+  String result = "";
+  if (input == 0) {
+    return "0";
+  }
+  while (input > 0) {
+    result = String(input % 10) + result;
+    input /= 10;
+  }
+  return result;
+}
+
+// Función para buscar un usuario por su ID de 5 bytes
+int findUserById(uint8_t* id) {
+  for (int i = 0; i < userCount; i++) {
+    if (memcmp(users[i].id, id, 5) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 // ========= FUNCIONES DEL SERVIDOR WEB ===========
 
@@ -50,8 +77,8 @@ void handleRoot() {
   html += "<p>Fecha y hora: " + getFormattedDateTime() + "</p>";
   html += "</div>";
   html += "<div><h2>Operaciones</h2>";
-  html += "<p><a href='/clearlogs' onclick='return confirm(\"¿Está seguro de borrar todos los registros?\");'>Borrar registros</a></p>";
-  html += "<p><a href='/reset' onclick='return confirm(\"¿Está seguro de reiniciar el dispositivo?\");'>Reiniciar dispositivo</a></p>";
+  html += "<p><a href='/clearlogs' onclick='return confirm(\\\"¿Está seguro de borrar todos los registros?\\\");'>Borrar registros</a></p>";
+  html += "<p><a href='/reset' onclick='return confirm(\\\"¿Está seguro de reiniciar el dispositivo?\\\");'>Reiniciar dispositivo</a></p>";
   html += "</div>";
   html += "</body></html>";
   
@@ -83,35 +110,30 @@ void handleUsers() {
   html += "<a href='/settings'>Configuración</a>";
   html += "</div>";
   
-  // Tabla de usuarios
   html += "<table>";
   html += "<tr><th>ID</th><th>Nombre</th><th>ID de Tarjeta</th><th>Departamento</th><th>Estado</th></tr>";
   
   for (int i = 0; i < userCount; i++) {
     html += "<tr>";
     
-    // ID de usuario (formatear en hexadecimal)
-    html += "<td>";
+    uint64_t userId_dec = 0;
     for (int j = 0; j < 5; j++) {
-      char hexVal[3];
-      sprintf(hexVal, "%02X", users[i].id[j]);
-      html += String(hexVal);
-      if (j < 4) html += ":";
+      userId_dec = (userId_dec << 8) | users[i].id[j];
     }
-    html += "</td>";
+    html += "<td>" + uint64ToString(userId_dec) + "</td>";
     
-    // Nombre
-    html += "<td>" + String(users[i].name) + "</td>";
+    String userName = "";
+    for (int k = 0; k < 10 && users[i].name[k] != '\0'; k++) {
+      if (users[i].name[k] >= 32 && users[i].name[k] < 127) {
+        userName += users[i].name[k];
+      }
+    }
+    html += "<td>" + userName + "</td>";
     
-    // ID de Tarjeta (formato hexadecimal)
-    char cardHex[10];
-    sprintf(cardHex, "0x%08X", users[i].cardId);
-    html += "<td>" + String(cardHex) + "</td>";
+    html += "<td>" + String(users[i].cardId) + "</td>";
     
-    // Departamento
     html += "<td>" + String(users[i].department) + "</td>";
     
-    // Estado
     html += "<td>" + String(users[i].isActive ? "Activo" : "Inactivo") + "</td>";
     
     html += "</tr>";
@@ -153,9 +175,8 @@ void handleRecords() {
   html += "<a href='/settings'>Configuración</a>";
   html += "</div>";
   
-  // Tabla de registros (mostramos solo los últimos 50 para evitar sobrecarga)
   html += "<table>";
-  html += "<tr><th>ID Usuario</th><th>Fecha/Hora</th><th>Tipo</th><th>Método</th></tr>";
+  html += "<tr><th>ID Usuario</th><th>Nombre</th><th>Fecha/Hora</th><th>Tipo</th><th>Método</th></tr>";
   
   int startIdx = (recordCount > 50) ? (recordCount - 50) : 0;
   int count = (recordCount > 50) ? 50 : recordCount;
@@ -164,29 +185,32 @@ void handleRecords() {
     int idx = startIdx + i;
     html += "<tr>";
     
-    // ID de usuario
-    html += "<td>";
+    uint64_t userId_dec = 0;
     for (int j = 0; j < 5; j++) {
-      char hexVal[3];
-      sprintf(hexVal, "%02X", records[idx].id[j]);
-      html += String(hexVal);
-      if (j < 4) html += ":";
+      userId_dec = (userId_dec << 8) | records[idx].id[j];
     }
-    html += "</td>";
+    html += "<td>" + uint64ToString(userId_dec) + "</td>";
+
+    int userIndex = findUserById(records[idx].id);
+    String userName = (userIndex != -1) ? String(users[userIndex].name) : "Desconocido";
+    String sanitizedUserName = "";
+    for (int k = 0; k < 10 && userName[k] != '\0'; k++) {
+      if (userName[k] >= 32 && userName[k] < 127) {
+        sanitizedUserName += userName[k];
+      }
+    }
+    html += "<td>" + sanitizedUserName + "</td>";
     
-    // Fecha y hora
     html += "<td>" + formatTimestamp(records[idx].timestamp) + "</td>";
     
-    // Tipo de registro
     String recordType;
     if (records[idx].recordType & 0x80) {
-      recordType = "Entrada"; // Bit 7 = 1
+      recordType = "Entrada";
     } else {
-      recordType = "Salida";  // Bit 7 = 0
+      recordType = "Salida";
     }
     html += "<td>" + recordType + "</td>";
     
-    // Método de verificación
     String method;
     switch (records[idx].backup) {
       case 0x01: method = "Contraseña"; break;
@@ -207,7 +231,7 @@ void handleRecords() {
     html += "<p>Mostrando los últimos 50 registros de un total de " + String(recordCount) + ".</p>";
   }
   
-  html += "<p><a href='/clearlogs' onclick='return confirm(\"¿Está seguro de borrar todos los registros?\");'>Borrar todos los registros</a></p>";
+  html += "<p><a href='/clearlogs' onclick='return confirm(\\\"¿Está seguro de borrar todos los registros?\\\");'>Borrar todos los registros</a></p>";
   
   html += "</body></html>";
   
@@ -241,15 +265,13 @@ void handleSettings() {
   html += "</div>";
   html += "<div class='config'>";
   
-  // Tabla de configuración
   html += "<table>";
   html += "<tr><th>Parámetro</th><th>Valor</th></tr>";
-  html += "<tr><td>ID del dispositivo</td><td>0x" + String(DEVICE_ID, HEX) + "</td></tr>";
+  html += "<tr><td>ID del dispositivo</td><td>" + String(DEVICE_ID) + "</td></tr>";
   html += "<tr><td>Versión de firmware</td><td>" + String(basicConfig.firmwareVersion) + "</td></tr>";
   html += "<tr><td>Número de serie</td><td>" + String(serialNumber) + "</td></tr>";
   html += "<tr><td>Volumen</td><td>" + String(basicConfig.volume) + "</td></tr>";
   
-  // Idioma con nombres en lugar de números
   String languageName;
   switch(basicConfig.language) {
     case 0: languageName = "Chino Simplificado"; break;
@@ -262,7 +284,6 @@ void handleSettings() {
   }
   html += "<tr><td>Idioma</td><td>" + languageName + "</td></tr>";
   
-  // Formato de fecha con descripción
   String dateFormat;
   uint8_t dateFormatType = (basicConfig.dateFormat >> 4) & 0x0F;
   uint8_t timeFormatType = basicConfig.dateFormat & 0x0F;
@@ -279,7 +300,6 @@ void handleSettings() {
   
   html += "<tr><td>Formato de fecha</td><td>" + dateFormat + "</td></tr>";
   
-  // Comprobar si SPIFFS está disponible
   FSInfo fsInfo;
   if (SPIFFS.info(fsInfo)) {
     html += "<tr><td>Espacio SPIFFS utilizado</td><td>" + String(fsInfo.usedBytes) + " / " + String(fsInfo.totalBytes) + " bytes</td></tr>";
@@ -321,24 +341,20 @@ void handleFileUpload() {
     String filename = "/upload_" + upload.filename;
     Serial.println("Iniciando carga: " + filename);
     
-    // Abrir archivo para escritura
     File file = SPIFFS.open(filename, "w");
     if (!file) {
       Serial.println("Error al abrir el archivo para escritura");
       return;
     }
     
-    // Almacenar handle del archivo para escrituras posteriores
     uploadFile = file;
   }
   else if (upload.status == UPLOAD_FILE_WRITE) {
-    // Escribir datos recibidos al archivo
     if (uploadFile) {
       uploadFile.write(upload.buf, upload.currentSize);
     }
   }
   else if (upload.status == UPLOAD_FILE_END) {
-    // Cerrar archivo
     if (uploadFile) {
       uploadFile.close();
       Serial.println("Carga completada: " + String(upload.totalSize) + " bytes");
@@ -351,5 +367,3 @@ void handleFileUpload() {
     }
   }
 }
-
-#endif // WEB_H
