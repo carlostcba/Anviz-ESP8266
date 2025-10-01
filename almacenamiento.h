@@ -20,6 +20,8 @@ void loadConfig() {
     Serial.println("Error al leer configuración");
     return;
   }
+
+  deviceId = doc["deviceId"] | 0x00010001;
   
   // Leer configuración básica
   strlcpy(basicConfig.firmwareVersion, doc["firmware"] | FIRMWARE_VERSION, 9);
@@ -42,6 +44,8 @@ void loadConfig() {
 
 void saveConfig() {
   DynamicJsonDocument doc(256);
+
+  doc["deviceId"] = deviceId;
   
   doc["firmware"] = basicConfig.firmwareVersion;
   

@@ -49,7 +49,7 @@ void processAnvizCommand() {
   }
   
   // Extraer CH, CMD y LEN
-  uint32_t deviceId = ((uint32_t)buffer[1] << 24) | 
+  uint32_t receivedDeviceId = ((uint32_t)buffer[1] << 24) | 
                       ((uint32_t)buffer[2] << 16) | 
                       ((uint32_t)buffer[3] << 8) | 
                       buffer[4];
@@ -171,10 +171,10 @@ void handleGetDeviceInfo() {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xB0; // CMD (0x30) + 0x80
@@ -235,10 +235,10 @@ void handleGetRecordInfo() {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xBC; // CMD (0x3C) + 0x80
@@ -342,10 +342,10 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xC0; // CMD (0x40) + 0x80
@@ -387,10 +387,10 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
     memcpy(&response[recordOffset + 11], records[idx].workCode, 3);
 
     // Device ID (4 bytes) - ¡ESTO ES LO QUE FALTABA!
-    response[recordOffset + 14] = (DEVICE_ID >> 24) & 0xFF;
-    response[recordOffset + 15] = (DEVICE_ID >> 16) & 0xFF;
-    response[recordOffset + 16] = (DEVICE_ID >> 8) & 0xFF;
-    response[recordOffset + 17] = DEVICE_ID & 0xFF;
+    response[recordOffset + 14] = (deviceId >> 24) & 0xFF;
+    response[recordOffset + 15] = (deviceId >> 16) & 0xFF;
+    response[recordOffset + 16] = (deviceId >> 8) & 0xFF;
+    response[recordOffset + 17] = deviceId & 0xFF;
   }
   
   // Calcular CRC16
@@ -456,10 +456,10 @@ void handleDownloadStaffInfo(uint8_t* data, uint16_t dataLen) {
   
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xC2; // CMD (0x42) + 0x80
@@ -612,10 +612,10 @@ void handleUploadStaffInfo(uint8_t* data, uint16_t dataLen) {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xC3; // CMD (0x43) + 0x80
@@ -701,10 +701,10 @@ void handleGetDeviceId() {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xF4; // CMD (0x74) + 0x80
@@ -717,10 +717,10 @@ void handleGetDeviceId() {
   response[8] = 0x04;
   
   // DATA (4 bytes) - El ID del dispositivo
-  response[9] = (DEVICE_ID >> 24) & 0xFF;
-  response[10] = (DEVICE_ID >> 16) & 0xFF;
-  response[11] = (DEVICE_ID >> 8) & 0xFF;
-  response[12] = DEVICE_ID & 0xFF;
+  response[9] = (deviceId >> 24) & 0xFF;
+  response[10] = (deviceId >> 16) & 0xFF;
+  response[11] = (deviceId >> 8) & 0xFF;
+  response[12] = deviceId & 0xFF;
   
   // Calcular CRC16
   uint16_t crc = calculateCRC16(response, 13);
@@ -768,10 +768,10 @@ void handleGetTime() {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = 0xB8; // CMD (0x38) + 0x80
@@ -1053,10 +1053,10 @@ void handleUploadStaffInfoExtended(uint8_t* data, uint16_t dataLen) {
     response[0] = STX;
     
     // CH (Device ID)
-    response[1] = (DEVICE_ID >> 24) & 0xFF;
-    response[2] = (DEVICE_ID >> 16) & 0xFF;
-    response[3] = (DEVICE_ID >> 8) & 0xFF;
-    response[4] = DEVICE_ID & 0xFF;
+    response[1] = (deviceId >> 24) & 0xFF;
+    response[2] = (deviceId >> 16) & 0xFF;
+    response[3] = (deviceId >> 8) & 0xFF;
+    response[4] = deviceId & 0xFF;
     
     // ACK
     response[5] = 0xF3; // CMD (0x73) + 0x80
@@ -1092,10 +1092,10 @@ void sendSimpleResponse(uint8_t cmd, uint8_t ret) {
   response[0] = STX;
   
   // CH (Device ID)
-  response[1] = (DEVICE_ID >> 24) & 0xFF;
-  response[2] = (DEVICE_ID >> 16) & 0xFF;
-  response[3] = (DEVICE_ID >> 8) & 0xFF;
-  response[4] = DEVICE_ID & 0xFF;
+  response[1] = (deviceId >> 24) & 0xFF;
+  response[2] = (deviceId >> 16) & 0xFF;
+  response[3] = (deviceId >> 8) & 0xFF;
+  response[4] = deviceId & 0xFF;
   
   // ACK
   response[5] = cmd + 0x80;

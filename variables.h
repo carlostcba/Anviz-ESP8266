@@ -16,6 +16,7 @@ int recordCount = 0;                   // Contador total de registros
 int newRecordCount = 0;                // Contador de nuevos registros
 BasicConfig basicConfig;               // Configuración básica
 char serialNumber[17] = {0};           // SN del dispositivo (16 bytes máximo)
+uint32_t deviceId = 0x00010001;        // ID del dispositivo (4 bytes)
 
 // Cliente NTP para sincronización de tiempo
 WiFiUDP ntpUDP;

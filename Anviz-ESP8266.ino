@@ -5,7 +5,7 @@
  * que puede ser utilizado con el software CrossChex. Soporta un lector RFID Wiegand 26/34
  * para control de acceso con tarjetas.
  * 
- * Autor: Claude
+ * Autor: Oemspot
  * Fecha: 31-03-2025
  */
 
@@ -16,10 +16,10 @@
 #include <TimeLib.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <WiFiManager.h>
 
 // ========= CONFIGURACIÓN WIFI Y RED ==========
-const char* wifi_ssid = "SYSTEMS";  // Tu SSID WiFi con espacios
-const char* wifi_password = "LASALLE300";          // Tu contraseña WiFi
+
 #define SERVER_PORT 5010                           // Puerto estándar de dispositivos Anviz
 
 // ========= CONFIGURACIÓN DE PINES ===========
@@ -29,9 +29,9 @@ const char* wifi_password = "LASALLE300";          // Tu contraseña WiFi
 #define LED_PIN D0    // GPIO para LED de estado
 
 // ========= CONFIGURACIÓN DEL DISPOSITIVO EMULADO ===========
-#define DEVICE_ID 0x00010001        // ID del dispositivo (4 bytes)
-#define FIRMWARE_VERSION "TC400001" // Versión de firmware
-#define SERIAL_NUMBER "TC40000000001" // Número de serie (16 bytes max)
+
+#define FIRMWARE_VERSION "TC401" // Versión de firmware
+#define SERIAL_NUMBER "TC401" // Número de serie (16 bytes max)
 
 // ========= DEFINICIONES DEL PROTOCOLO ===========
 #define STX 0xA5           // Inicio de trama
@@ -75,31 +75,23 @@ ICACHE_RAM_ATTR void handleD1() {
 
 // Función mejorada para conectar al WiFi
 bool connectWiFi() {
-  Serial.print("Conectando a WiFi: ");
-  Serial.println(wifi_ssid);
-  
-  WiFi.mode(WIFI_STA);
-  WiFi.persistent(false);
-  WiFi.begin(wifi_ssid, wifi_password);
-  
-  unsigned long startTime = millis();
-  uint8_t timeout = 30; // 30 segundos para timeout (más tiempo que antes)
-  
-  // Bucle mientras intentamos conectar
-  while (millis() - startTime < timeout * 1000) {
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("\nConectado a WiFi");
-      Serial.print("Dirección IP: ");
-      Serial.println(WiFi.localIP());
-      return true;
-    }
-    
-    delay(500);
-    Serial.print(".");
+  WiFiManager wifiManager;
+  String mac = WiFi.macAddress();
+  String lastMac = mac.substring(12);
+  lastMac.replace(":", "");
+  String apName = "Anviz-ESP8266-" + lastMac;
+
+  if (!wifiManager.autoConnect(apName.c_str())) {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    ESP.restart();
+    delay(5000);
   }
-  
-  Serial.println("\nError al conectar a WiFi - Timeout");
-  return false;
+
+  Serial.println("connected...yeey :)");
+  Serial.println("local ip");
+  Serial.println(WiFi.localIP());
+  return true;
 }
 
 // ========= SETUP ===========
@@ -188,7 +180,7 @@ void loop() {
   if (millis() - lastHeartbeat > heartbeatInterval) {
     lastHeartbeat = millis();
     String uptime = String(millis() / 60000);
-    Serial.println("[HEARTBEAT] System OK. Uptime: " + uptime + " min.");
+    Serial.println("[HEARTBEAT] System OK. Uptime: " + uptime + " min. | millis: " + String(millis()) + " | lastHeartbeat: " + String(lastHeartbeat));
   }
 
   // Atender servidor web
@@ -259,6 +251,8 @@ void setupWebServer() {
   webServer.on("/users", HTTP_GET, handleUsers);
   webServer.on("/records", HTTP_GET, handleRecords);
   webServer.on("/settings", HTTP_GET, handleSettings);
+  webServer.on("/savesettings", HTTP_POST, handleSaveSettings);
+  webServer.on("/changewifi", HTTP_GET, handleWifiChange);
   webServer.on("/clearlogs", HTTP_GET, handleClearLogs);
   webServer.on("/reset", HTTP_GET, handleReset);
   

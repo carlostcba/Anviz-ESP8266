@@ -40,6 +40,10 @@ typedef struct {
   uint8_t machineStatus;    // Estado de la máquina
   uint8_t languageFlag;     // Banderas de idioma
   uint8_t cmdVersion;       // Versión de comandos
+  uint8_t pin_d0;           // Pin para Wiegand D0
+  uint8_t pin_d1;           // Pin para Wiegand D1
+  uint8_t pin_relay;        // Pin para el relé
+  uint8_t pin_led;          // Pin para el LED de estado
 } BasicConfig;
 
 #endif // ESTRUCTURAS_H

@@ -12,14 +12,14 @@ int findUserById(uint8_t* id);
 // Variable para manejo de subida de archivos
 File uploadFile;
 
-// Declaración de funciones externas necesarias de utilidades.h
+// Declaracion de funciones externas necesarias de utilidades.h
 extern String getFormattedDateTime();
 extern String formatTimestamp(uint32_t timestamp);
 extern void saveRecords();
 
 // ========= FUNCIONES DE UTILIDAD ===========
 
-// Función para convertir uint64_t a String
+// Funcion para convertir uint64_t a String
 String uint64ToString(uint64_t input) {
   String result = "";
   if (input == 0) {
@@ -32,7 +32,7 @@ String uint64ToString(uint64_t input) {
   return result;
 }
 
-// Función para buscar un usuario por su ID de 5 bytes
+// Funcion para buscar un usuario por su ID de 5 bytes
 int findUserById(uint8_t* id) {
   for (int i = 0; i < userCount; i++) {
     if (memcmp(users[i].id, id, 5) == 0) {
@@ -44,7 +44,7 @@ int findUserById(uint8_t* id) {
 
 // ========= FUNCIONES DEL SERVIDOR WEB ===========
 
-// Página principal
+// Pagina principal
 void handleRoot() {
   String html = "<!DOCTYPE html><html><head><title>Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
@@ -62,23 +62,24 @@ void handleRoot() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Emulador de Dispositivo Anviz</h1>";
-  html += "<div class='menu'>";
+  html += "<div class='menu'";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
-  html += "<a href='/settings'>Configuración</a>";
+  html += "<a href='/settings'>Configuracion</a>";
   html += "</div>";
-  html += "<div class='status'>";
+  html += "<div class='status'";
   html += "<h2>Estado del Sistema</h2>";
-  html += "<p>Dirección IP: " + WiFi.localIP().toString() + "</p>";
-  html += "<p>Fuerza de señal WiFi: " + String(WiFi.RSSI()) + " dBm</p>";
+  html += "<p>Direccion IP: " + WiFi.localIP().toString() + "</p>";
+  html += "<p>Fuerza de senal WiFi: " + String(WiFi.RSSI()) + " dBm</p>";
   html += "<p>Usuarios registrados: " + String(userCount) + "</p>";
   html += "<p>Registros de acceso: " + String(recordCount) + " (nuevos: " + String(newRecordCount) + ")</p>";
   html += "<p>Fecha y hora: " + getFormattedDateTime() + "</p>";
   html += "</div>";
   html += "<div><h2>Operaciones</h2>";
-  html += "<p><a href='/clearlogs' onclick='return confirm(\\\"¿Está seguro de borrar todos los registros?\\\");'>Borrar registros</a></p>";
-  html += "<p><a href='/reset' onclick='return confirm(\\\"¿Está seguro de reiniciar el dispositivo?\\\");'>Reiniciar dispositivo</a></p>";
+  html += "<p><a href='/changewifi' onclick='return confirm(\"Esta seguro de querer cambiar la red WiFi? Se borrara la configuracion actual y el dispositivo se reiniciara en modo de configuracion.\");'>Cambiar Red WiFi</a></p>";
+  html += "<p><a href='/clearlogs' onclick='return confirm(\"Esta seguro de borrar todos los registros?\");'>Borrar registros</a></p>";
+  html += "<p><a href='/reset' onclick='return confirm(\"Esta seguro de reiniciar el dispositivo?\");'>Reiniciar dispositivo</a></p>";
   html += "</div>";
   html += "</body></html>";
   
@@ -86,7 +87,7 @@ void handleRoot() {
   webServer.send(200, "text/html", html);
 }
 
-// Página de usuarios
+// Pagina de usuarios
 void handleUsers() {
   String html = "<!DOCTYPE html><html><head><title>Usuarios - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
@@ -103,11 +104,11 @@ void handleUsers() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Usuarios Registrados</h1>";
-  html += "<div class='menu'>";
+  html += "<div class='menu'";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
-  html += "<a href='/settings'>Configuración</a>";
+  html += "<a href='/settings'>Configuracion</a>";
   html += "</div>";
   
   html += "<table>";
@@ -142,7 +143,7 @@ void handleUsers() {
   html += "</table>";
   
   if (userCount == 0) {
-    html += "<p>No hay usuarios registrados. Utilice el software Anviz CrossChex para añadir usuarios.</p>";
+    html += "<p>No hay usuarios registrados. Utilice el software Anviz CrossChex para anadir usuarios.</p>";
   }
   
   html += "</body></html>";
@@ -151,7 +152,7 @@ void handleUsers() {
   webServer.send(200, "text/html", html);
 }
 
-// Página de registros de acceso
+// Pagina de registros de acceso
 void handleRecords() {
   String html = "<!DOCTYPE html><html><head><title>Registros - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
@@ -168,15 +169,15 @@ void handleRecords() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Registros de Acceso</h1>";
-  html += "<div class='menu'>";
+  html += "<div class='menu'";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
-  html += "<a href='/settings'>Configuración</a>";
+  html += "<a href='/settings'>Configuracion</a>";
   html += "</div>";
   
   html += "<table>";
-  html += "<tr><th>ID Usuario</th><th>Nombre</th><th>Fecha/Hora</th><th>Tipo</th><th>Método</th></tr>";
+  html += "<tr><th>ID Usuario</th><th>Nombre</th><th>Fecha/Hora</th><th>Tipo</th><th>Metodo</th></tr>";
   
   int startIdx = (recordCount > 50) ? (recordCount - 50) : 0;
   int count = (recordCount > 50) ? 50 : recordCount;
@@ -213,7 +214,7 @@ void handleRecords() {
     
     String method;
     switch (records[idx].backup) {
-      case 0x01: method = "Contraseña"; break;
+      case 0x01: method = "Contrasena"; break;
       case 0x02: method = "Huella digital"; break;
       case 0x08: method = "Tarjeta"; break;
       default: method = "Otro"; break;
@@ -226,12 +227,12 @@ void handleRecords() {
   html += "</table>";
   
   if (recordCount == 0) {
-    html += "<p>No hay registros de acceso. Los registros se generarán cuando los usuarios utilicen sus tarjetas.</p>";
+    html += "<p>No hay registros de acceso. Los registros se generaran cuando los usuarios utilicen sus tarjetas.</p>";
   } else if (recordCount > 50) {
-    html += "<p>Mostrando los últimos 50 registros de un total de " + String(recordCount) + ".</p>";
+    html += "<p>Mostrando los ultimos 50 registros de un total de " + String(recordCount) + ".</p>";
   }
   
-  html += "<p><a href='/clearlogs' onclick='return confirm(\\\"¿Está seguro de borrar todos los registros?\\\");'>Borrar todos los registros</a></p>";
+  html += "<p><a href='/clearlogs' onclick='return confirm(\"Esta seguro de borrar todos los registros?\");'>Borrar todos los registros</a></p>";
   
   html += "</body></html>";
   
@@ -239,9 +240,9 @@ void handleRecords() {
   webServer.send(200, "text/html", html);
 }
 
-// Página de configuración
+// Pagina de configuracion
 void handleSettings() {
-  String html = "<!DOCTYPE html><html><head><title>Configuración - Emulador Anviz</title>";
+  String html = "<!DOCTYPE html><html><head><title>Configuracion - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<style>";
@@ -256,30 +257,31 @@ void handleSettings() {
   html += "th { background-color: #f2f2f2; width: 40%; }";
   html += "</style>";
   html += "</head><body>";
-  html += "<h1>Configuración del Emulador</h1>";
-  html += "<div class='menu'>";
+  html += "<h1>Configuracion del Emulador</h1>";
+  html += "<div class='menu'";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
-  html += "<a href='/settings'>Configuración</a>";
+  html += "<a href='/settings'>Configuracion</a>";
   html += "</div>";
-  html += "<div class='config'>";
+  html += "<div class='config'";
   
+  html += "<form action='/savesettings' method='post'>";
   html += "<table>";
-  html += "<tr><th>Parámetro</th><th>Valor</th></tr>";
-  html += "<tr><td>ID del dispositivo</td><td>" + String(DEVICE_ID) + "</td></tr>";
-  html += "<tr><td>Versión de firmware</td><td>" + String(basicConfig.firmwareVersion) + "</td></tr>";
-  html += "<tr><td>Número de serie</td><td>" + String(serialNumber) + "</td></tr>";
+  html += "<tr><th>Parametro</th><th>Valor</th></tr>";
+  html += "<tr><td>ID del dispositivo</td><td><input type='text' name='deviceId' value='" + String(deviceId) + "'></td></tr>";
+  html += "<tr><td>Version de firmware</td><td>" + String(basicConfig.firmwareVersion) + "</td></tr>";
+  html += "<tr><td>Numero de serie</td><td>" + String(serialNumber) + "</td></tr>";
   html += "<tr><td>Volumen</td><td>" + String(basicConfig.volume) + "</td></tr>";
   
   String languageName;
   switch(basicConfig.language) {
     case 0: languageName = "Chino Simplificado"; break;
     case 1: languageName = "Chino Tradicional"; break;
-    case 2: languageName = "Inglés"; break;
-    case 3: languageName = "Francés"; break;
-    case 4: languageName = "Español"; break;
-    case 5: languageName = "Portugués"; break;
+    case 2: languageName = "Ingles"; break;
+    case 3: languageName = "Frances"; break;
+    case 4: languageName = "Espanol"; break;
+    case 5: languageName = "Portugues"; break;
     default: languageName = String(basicConfig.language); break;
   }
   html += "<tr><td>Idioma</td><td>" + languageName + "</td></tr>";
@@ -306,13 +308,34 @@ void handleSettings() {
   }
   
   html += "</table>";
+  html += "<br><input type='submit' value='Guardar y Reiniciar'>";
+  html += "</form>";
+  html += "<hr><p><a href='/changewifi' onclick='return confirm(\"Esta seguro de querer cambiar la red WiFi? Se borrara la configuracion actual y el dispositivo se reiniciara en modo de configuracion.\");'>Cambiar Red WiFi</a></p>";
   
-  html += "<p>Nota: Para modificar la configuración del dispositivo, utilice el software Anviz CrossChex.</p>";
   html += "</div>";
   html += "</body></html>";
   
   webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", html);
+}
+
+// Manejar guardado de configuracion
+void handleSaveSettings() {
+  if (webServer.hasArg("deviceId")) {
+    deviceId = webServer.arg("deviceId").toInt();
+    saveConfig();
+  }
+  webServer.sendHeader("Location", "/settings");
+  webServer.send(303);
+  delay(1000);
+  ESP.restart();
+}
+
+// Manejar cambio de WiFi
+void handleWifiChange() {
+  WiFiManager wifiManager;
+  wifiManager.resetSettings();
+  ESP.restart();
 }
 
 // Manejar borrado de registros
