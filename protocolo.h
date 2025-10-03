@@ -904,16 +904,16 @@ void handleDeleteRecords(uint8_t* data, uint16_t dataLen) {
 // CMD 0x5E: Abrir cerradura sin verificar usuario
 void handleForcedUnlock() {
   // Activar relé para abrir la puerta
-  digitalWrite(RELAY_PIN, HIGH);
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(basicConfig.pin_relay, HIGH);
+  digitalWrite(basicConfig.pin_led, HIGH);
   
   // Preparar respuesta
   sendSimpleResponse(0x5E, ACK_SUCCESS);
   
   // Esperar y desactivar el relé
   delay(2000);
-  digitalWrite(RELAY_PIN, LOW);
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(basicConfig.pin_relay, LOW);
+  digitalWrite(basicConfig.pin_led, LOW);
 }
 
 // CMD 0x75: Modificar ID de dispositivo de comunicación

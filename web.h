@@ -15,6 +15,7 @@ File uploadFile;
 // Declaracion de funciones externas necesarias de utilidades.h
 extern String getFormattedDateTime();
 extern String formatTimestamp(uint32_t timestamp);
+extern void saveWebAuth();
 extern void saveRecords();
 
 // ========= FUNCIONES DE UTILIDAD ===========
@@ -42,10 +43,22 @@ int findUserById(uint8_t* id) {
   return -1;
 }
 
+// Funcion para verificar la autenticacion
+bool isAuthenticated() {
+  if (webServer.hasHeader("Authorization")) {
+    if (webServer.authenticate(web_user, web_pass)) {
+      return true;
+    }
+  }
+  webServer.requestAuthentication();
+  return false;
+}
+
 // ========= FUNCIONES DEL SERVIDOR WEB ===========
 
 // Pagina principal
 void handleRoot() {
+  if (!isAuthenticated()) return;
   String html = "<!DOCTYPE html><html><head><title>Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -62,11 +75,12 @@ void handleRoot() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Emulador de Dispositivo Anviz</h1>";
-  html += "<div class='menu'";
+  html += "<div class='menu'>";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
   html += "<a href='/settings'>Configuracion</a>";
+  html += "<a href='/auth'>Seguridad</a>";
   html += "</div>";
   html += "<div class='status'";
   html += "<h2>Estado del Sistema</h2>";
@@ -89,6 +103,7 @@ void handleRoot() {
 
 // Pagina de usuarios
 void handleUsers() {
+  if (!isAuthenticated()) return;
   String html = "<!DOCTYPE html><html><head><title>Usuarios - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -104,11 +119,12 @@ void handleUsers() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Usuarios Registrados</h1>";
-  html += "<div class='menu'";
+  html += "<div class='menu'>";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
   html += "<a href='/settings'>Configuracion</a>";
+  html += "<a href='/auth'>Seguridad</a>";
   html += "</div>";
   
   html += "<table>";
@@ -154,6 +170,7 @@ void handleUsers() {
 
 // Pagina de registros de acceso
 void handleRecords() {
+  if (!isAuthenticated()) return;
   String html = "<!DOCTYPE html><html><head><title>Registros - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -169,11 +186,12 @@ void handleRecords() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Registros de Acceso</h1>";
-  html += "<div class='menu'";
+  html += "<div class='menu'>";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
   html += "<a href='/settings'>Configuracion</a>";
+  html += "<a href='/auth'>Seguridad</a>";
   html += "</div>";
   
   html += "<table>";
@@ -242,6 +260,7 @@ void handleRecords() {
 
 // Pagina de configuracion
 void handleSettings() {
+  if (!isAuthenticated()) return;
   String html = "<!DOCTYPE html><html><head><title>Configuracion - Emulador Anviz</title>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -258,11 +277,12 @@ void handleSettings() {
   html += "</style>";
   html += "</head><body>";
   html += "<h1>Configuracion del Emulador</h1>";
-  html += "<div class='menu'";
+  html += "<div class='menu'>";
   html += "<a href='/'>Inicio</a>";
   html += "<a href='/users'>Usuarios</a>";
   html += "<a href='/records'>Registros</a>";
   html += "<a href='/settings'>Configuracion</a>";
+  html += "<a href='/auth'>Seguridad</a>";
   html += "</div>";
   html += "<div class='config'";
   
@@ -271,6 +291,12 @@ void handleSettings() {
   html += "<tr><th>Parametro</th><th>Valor</th></tr>";
   html += "<tr><td>ID del dispositivo</td><td><input type='text' name='deviceId' value='" + String(deviceId) + "'></td></tr>";
   html += "<tr><td>Version de firmware</td><td>" + String(basicConfig.firmwareVersion) + "</td></tr>";
+  html += "<tr><td colspan='2' style='background-color:#e0f7fa;'><b>Configuracion de Pines GPIO</b></td></tr>";
+  html += "<tr><td>Pin Wiegand D0</td><td><input type='text' name='pin_d0' value='" + String(basicConfig.pin_d0) + "'></td></tr>";
+  html += "<tr><td>Pin Wiegand D1</td><td><input type='text' name='pin_d1' value='" + String(basicConfig.pin_d1) + "'></td></tr>";
+  html += "<tr><td>Pin Rele</td><td><input type='text' name='pin_relay' value='" + String(basicConfig.pin_relay) + "'></td></tr>";
+  html += "<tr><td>Pin LED de Estado</td><td><input type='text' name='pin_led' value='" + String(basicConfig.pin_led) + "'></td></tr>";
+  html += "<tr><td colspan='2' style='background-color:#e0f7fa;'><b>Otros Parametros</b></td></tr>";
   html += "<tr><td>Numero de serie</td><td>" + String(serialNumber) + "</td></tr>";
   html += "<tr><td>Volumen</td><td>" + String(basicConfig.volume) + "</td></tr>";
   
@@ -319,11 +345,62 @@ void handleSettings() {
   webServer.send(200, "text/html", html);
 }
 
+// Página para cambiar la autenticación
+void handleAuth() {
+  if (!isAuthenticated()) return;
+  String html = "<!DOCTYPE html><html><head><title>Seguridad - Emulador Anviz</title>";
+  html += "<meta charset='UTF-8'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  html += "<style>";
+  html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }";
+  html += "h1 { color: #0066cc; }";
+  html += ".menu { background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; }";
+  html += ".menu a { margin-right: 10px; color: #0066cc; text-decoration: none; padding: 5px; }";
+  html += ".menu a:hover { background-color: #e0e0e0; }";
+  html += ".config { background-color: #f9f9f9; padding: 15px; border-radius: 5px; }";
+  html += "input[type=text], input[type=password] { width: 100%; padding: 8px; margin: 4px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }";
+  html += "input[type=submit] { background-color: #0066cc; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }";
+  html += "</style>";
+  html += "</head><body>";
+  html += "<h1>Configuración de Seguridad</h1>";
+  html += "<div class='menu'>";
+  html += "<a href='/'>Inicio</a>";
+  html += "<a href='/users'>Usuarios</a>";
+  html += "<a href='/records'>Registros</a>";
+  html += "<a href='/settings'>Configuracion</a>";
+  html += "<a href='/auth'>Seguridad</a>";
+  html += "</div>";
+  html += "<div class='config'>";
+  html += "<h2>Cambiar Credenciales de Acceso Web</h2>";
+  html += "<form action='/saveauth' method='post'>";
+  html += "<label for='user'>Usuario:</label>";
+  html += "<input type='text' id='user' name='user' value='" + String(web_user) + "' required>";
+  html += "<label for='pass'>Nueva Contraseña:</label>";
+  html += "<input type='password' id='pass' name='pass' required>";
+  html += "<br><br><input type='submit' value='Guardar Credenciales'>";
+  html += "</form>";
+  html += "</div>";
+  html += "</body></html>";
+
+  webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+  webServer.send(200, "text/html", html);
+}
+
 // Manejar guardado de configuracion
 void handleSaveSettings() {
+  if (!isAuthenticated()) return;
   if (webServer.hasArg("deviceId")) {
     deviceId = webServer.arg("deviceId").toInt();
     saveConfig();
+  }
+  if (webServer.hasArg("pin_d0")) {
+    basicConfig.pin_d0 = webServer.arg("pin_d0").toInt();
+    basicConfig.pin_d1 = webServer.arg("pin_d1").toInt();
+    basicConfig.pin_relay = webServer.arg("pin_relay").toInt();
+    basicConfig.pin_led = webServer.arg("pin_led").toInt();
+    saveConfig();
+  } else {
+    // Si no se envían los pines, es posible que sea un guardado desde una versión anterior.
   }
   webServer.sendHeader("Location", "/settings");
   webServer.send(303);
@@ -331,8 +408,26 @@ void handleSaveSettings() {
   ESP.restart();
 }
 
+// Manejar guardado de credenciales
+void handleSaveAuth() {
+  if (!isAuthenticated()) return;
+  if (webServer.hasArg("user") && webServer.hasArg("pass")) {
+    String user = webServer.arg("user");
+    String pass = webServer.arg("pass");
+    if (user.length() > 0 && user.length() < sizeof(web_user) && pass.length() > 0 && pass.length() < sizeof(web_pass)) {
+      user.toCharArray(web_user, sizeof(web_user));
+      pass.toCharArray(web_pass, sizeof(web_pass));
+      saveWebAuth();
+      webServer.send(200, "text/plain", "Credenciales guardadas. Se recomienda reiniciar el dispositivo.");
+    } else {
+      webServer.send(400, "text/plain", "Usuario o contraseña demasiado largos.");
+    }
+  }
+}
+
 // Manejar cambio de WiFi
 void handleWifiChange() {
+  if (!isAuthenticated()) return;
   WiFiManager wifiManager;
   wifiManager.resetSettings();
   ESP.restart();
@@ -340,6 +435,7 @@ void handleWifiChange() {
 
 // Manejar borrado de registros
 void handleClearLogs() {
+  if (!isAuthenticated()) return;
   recordCount = 0;
   newRecordCount = 0;
   saveRecords();
@@ -350,6 +446,7 @@ void handleClearLogs() {
 
 // Manejar reinicio del dispositivo
 void handleReset() {
+  if (!isAuthenticated()) return;
   webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
   webServer.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta http-equiv='refresh' content='5;url=/'></head><body><h2>Reiniciando el dispositivo...</h2><p>Volviendo al inicio en 5 segundos.</p></body></html>");
   delay(1000);
@@ -358,6 +455,7 @@ void handleReset() {
 
 // Manejar carga de archivos
 void handleFileUpload() {
+  if (!isAuthenticated()) return;
   HTTPUpload& upload = webServer.upload();
   
   if (upload.status == UPLOAD_FILE_START) {

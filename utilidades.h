@@ -38,9 +38,9 @@ String formatTimestamp(uint32_t timestamp) {
 // Hacer parpadear el LED para indicar un error
 void blinkError(int count) {
   for (int i = 0; i < count; i++) {
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(basicConfig.pin_led, HIGH);
     delay(200);
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(basicConfig.pin_led, LOW);
     delay(200);
   }
 }

@@ -22,12 +22,6 @@
 
 #define SERVER_PORT 5010                           // Puerto estándar de dispositivos Anviz
 
-// ========= CONFIGURACIÓN DE PINES ===========
-#define PIN_D0 D7     // GPIO para Data0 del lector Wiegand
-#define PIN_D1 D6     // GPIO para Data1 del lector Wiegand
-#define RELAY_PIN D1  // GPIO para control del relé
-#define LED_PIN D0    // GPIO para LED de estado
-
 // ========= CONFIGURACIÓN DEL DISPOSITIVO EMULADO ===========
 
 #define FIRMWARE_VERSION "TC401" // Versión de firmware
@@ -98,30 +92,6 @@ bool connectWiFi() {
 void setup() {
   Serial.begin(115200);
   Serial.println("\n\n[SETUP] Iniciando emulador de dispositivo Anviz...");
-  
-  // Inicializar hardware
-  Serial.println("[SETUP] Configurando pines de hardware...");
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(PIN_D0, INPUT_PULLUP);  // Wiegand Data0
-  pinMode(PIN_D1, INPUT_PULLUP);  // Wiegand Data1
-  
-  digitalWrite(RELAY_PIN, LOW);
-  digitalWrite(LED_PIN, LOW);
-  
-  // LED de arranque
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(LED_PIN, HIGH);
-    delay(100);
-    digitalWrite(LED_PIN, LOW);
-    delay(100);
-  }
-  
-  // Configurar interrupciones para Wiegand
-  Serial.println("[SETUP] Configurando interrupciones Wiegand...");
-  attachInterrupt(digitalPinToInterrupt(PIN_D0), handleD0, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PIN_D1), handleD1, FALLING);
-  Serial.println("[SETUP] Interrupciones Wiegand activadas.");
 
   // Inicializar sistema de archivos
   if (!SPIFFS.begin()) {
@@ -138,9 +108,34 @@ void setup() {
   
   // Cargar datos almacenados
   loadConfig();
+  loadWebAuth();
   loadUsers();
   loadRecords();
   Serial.println("[SETUP] Carga de datos finalizada.");
+  
+  // Inicializar hardware AHORA que tenemos la configuración de pines cargada
+  Serial.println("[SETUP] Configurando pines de hardware...");
+  pinMode(basicConfig.pin_relay, OUTPUT);
+  pinMode(basicConfig.pin_led, OUTPUT);
+  pinMode(basicConfig.pin_d0, INPUT_PULLUP);  // Wiegand Data0
+  pinMode(basicConfig.pin_d1, INPUT_PULLUP);  // Wiegand Data1
+  
+  digitalWrite(basicConfig.pin_relay, LOW);
+  digitalWrite(basicConfig.pin_led, LOW);
+  
+  // LED de arranque
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(basicConfig.pin_led, HIGH);
+    delay(100);
+    digitalWrite(basicConfig.pin_led, LOW);
+    delay(100);
+  }
+  
+  // Configurar interrupciones para Wiegand
+  Serial.println("[SETUP] Configurando interrupciones Wiegand...");
+  attachInterrupt(digitalPinToInterrupt(basicConfig.pin_d0), handleD0, FALLING);
+  attachInterrupt(digitalPinToInterrupt(basicConfig.pin_d1), handleD1, FALLING);
+  Serial.println("[SETUP] Interrupciones Wiegand activadas.");
   
   // Conectar a WiFi con el método mejorado
   if (connectWiFi()) {
@@ -161,9 +156,9 @@ void setup() {
     Serial.println("Servidor TCP iniciado en puerto 5010");
     
     // Indicar éxito con LED
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(basicConfig.pin_led, HIGH);
     delay(1000);
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(basicConfig.pin_led, LOW);
   } else {
     Serial.println("\nError al conectar a WiFi");
     // Indicar error con LED
@@ -210,9 +205,9 @@ void loop() {
     if (WiFi.status() != WL_CONNECTED) {
       Serial.println("Conexión WiFi perdida, intentando reconectar...");
       // Parpadear LED para indicar reconexión
-      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(basicConfig.pin_led, HIGH);
       delay(200);
-      digitalWrite(LED_PIN, LOW);
+      digitalWrite(basicConfig.pin_led, LOW);
       // Intentar reconectar
       connectWiFi();
     }
@@ -240,6 +235,12 @@ void initializeDefaultConfig() {
   basicConfig.machineStatus = 0;
   basicConfig.languageFlag = 0x10;
   basicConfig.cmdVersion = 0x02;
+
+  // Pines por defecto
+  basicConfig.pin_d0 = D7;
+  basicConfig.pin_d1 = D6;
+  basicConfig.pin_relay = D1;
+  basicConfig.pin_led = D0;
   
   // Número de serie por defecto
   strcpy(serialNumber, SERIAL_NUMBER);
@@ -252,6 +253,8 @@ void setupWebServer() {
   webServer.on("/records", HTTP_GET, handleRecords);
   webServer.on("/settings", HTTP_GET, handleSettings);
   webServer.on("/savesettings", HTTP_POST, handleSaveSettings);
+  webServer.on("/auth", HTTP_GET, handleAuth);
+  webServer.on("/saveauth", HTTP_POST, handleSaveAuth);
   webServer.on("/changewifi", HTTP_GET, handleWifiChange);
   webServer.on("/clearlogs", HTTP_GET, handleClearLogs);
   webServer.on("/reset", HTTP_GET, handleReset);
@@ -297,8 +300,8 @@ void checkWiegandCard() {
       Serial.println((char*)users[userIndex].name);
       
       // Activar relé y LED
-      digitalWrite(RELAY_PIN, HIGH);
-      digitalWrite(LED_PIN, HIGH);
+      digitalWrite(basicConfig.pin_relay, HIGH);
+      digitalWrite(basicConfig.pin_led, HIGH);
       
       // Crear registro de acceso
       createAccessRecord(userIndex);
@@ -306,17 +309,17 @@ void checkWiegandCard() {
       delay(2000);
       
       // Desactivar relé y LED
-      digitalWrite(RELAY_PIN, LOW);
-      digitalWrite(LED_PIN, LOW);
+      digitalWrite(basicConfig.pin_relay, LOW);
+      digitalWrite(basicConfig.pin_led, LOW);
     } else {
       // Usuario no encontrado
       Serial.println("[WIEGAND] Tarjeta no autorizada");
       
       // Parpadeo de LED para indicar rechazo
       for (int i = 0; i < 3; i++) {
-        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(basicConfig.pin_led, HIGH);
         delay(200);
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(basicConfig.pin_led, LOW);
         delay(200);
       }
     }

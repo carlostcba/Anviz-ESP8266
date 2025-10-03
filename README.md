@@ -6,7 +6,7 @@ Este proyecto convierte un microcontrolador ESP8266 en un emulador de dispositiv
 
 -   **Emulación de Protocolo Anviz:** Se comunica vía TCP (puerto 5010) para ser gestionado por CrossChex.
 -   **Lector RFID Wiegand:** Compatible con lectores Wiegand 26/34.
--   **Interfaz Web:** Servidor web para monitorización de estado, usuarios y registros.
+-   **Interfaz Web Segura:** Servidor web con autenticación para monitorización de estado, usuarios y registros.
 -   **Persistencia de Datos:** Almacena configuración, usuarios y registros en la memoria SPIFFS.
 -   **Control de Acceso:** Activa un relé para abrir una puerta.
 -   **Sincronización de Hora:** Cliente NTP para mantener la hora actualizada.
@@ -52,6 +52,7 @@ Instala las siguientes librerías desde el Gestor de Librerías del Arduino IDE:
 5.  **Uso:**
     *   Abre el Monitor Serie (115200 baudios) para ver la IP asignada.
     *   Accede a la interfaz web con la IP del dispositivo.
+    *   Se te solicitarán credenciales. Por defecto son **usuario:** `admin`, **contraseña:** `admin`.
     *   Usa **Anviz CrossChex** para gestionar usuarios, añadiendo el dispositivo con su IP y el puerto `5010`.
 
 ## Interfaz Web
@@ -62,6 +63,7 @@ La interfaz web proporciona:
 -   **Usuarios:** Lista de usuarios registrados.
 -   **Registros:** Últimos 50 registros de acceso.
 -   **Configuración:** Información de configuración y opción de reinicio.
+-   **Seguridad:** Permite cambiar el usuario y la contraseña de acceso a la interfaz web.
 
 ## Estructura del Proyecto
 
@@ -75,9 +77,7 @@ La interfaz web proporciona:
 
 ## Mejoras Futuras
 
--   [ ] Soporte para gestión de huellas dactilares.
--   [ ] Subida de usuarios y registros desde la interfaz web.
--   [ ] Autenticación para la interfaz web.
+-   [x] Autenticación para la interfaz web.
 -   [ ] Configuración de pines GPIO desde la interfaz web.
 
 ## Autor

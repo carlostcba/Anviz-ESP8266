@@ -14,7 +14,7 @@ void loadConfig() {
     return;
   }
   
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(512);
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
     Serial.println("Error al leer configuración");
@@ -38,12 +38,18 @@ void loadConfig() {
   basicConfig.machineStatus = doc["status"] | 0;
   basicConfig.languageFlag = doc["langflag"] | 0x10;
   basicConfig.cmdVersion = doc["cmdver"] | 0x02;
+
+  // Cargar pines GPIO, con valores por defecto si no existen
+  basicConfig.pin_d0 = doc["pin_d0"] | D7;
+  basicConfig.pin_d1 = doc["pin_d1"] | D6;
+  basicConfig.pin_relay = doc["pin_relay"] | D1;
+  basicConfig.pin_led = doc["pin_led"] | D0;
   
   file.close();
 }
 
 void saveConfig() {
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(512);
 
   doc["deviceId"] = deviceId;
   
@@ -61,6 +67,12 @@ void saveConfig() {
   doc["status"] = basicConfig.machineStatus;
   doc["langflag"] = basicConfig.languageFlag;
   doc["cmdver"] = basicConfig.cmdVersion;
+
+  // Guardar pines GPIO
+  doc["pin_d0"] = basicConfig.pin_d0;
+  doc["pin_d1"] = basicConfig.pin_d1;
+  doc["pin_relay"] = basicConfig.pin_relay;
+  doc["pin_led"] = basicConfig.pin_led;
   
   File file = SPIFFS.open("/config.json", "w");
   if (!file) {
@@ -68,6 +80,42 @@ void saveConfig() {
     return;
   }
   
+  serializeJson(doc, file);
+  file.close();
+}
+
+void loadWebAuth() {
+  File file = SPIFFS.open("/webauth.json", "r");
+  if (!file) {
+    Serial.println("No hay archivo de autenticación web, usando valores por defecto.");
+    return;
+  }
+
+  DynamicJsonDocument doc(256);
+  DeserializationError error = deserializeJson(doc, file);
+  if (error) {
+    Serial.println("Error al leer autenticación web.");
+    file.close();
+    return;
+  }
+
+  strlcpy(web_user, doc["user"] | "admin", sizeof(web_user));
+  strlcpy(web_pass, doc["pass"] | "admin", sizeof(web_pass));
+
+  file.close();
+}
+
+void saveWebAuth() {
+  DynamicJsonDocument doc(256);
+  doc["user"] = web_user;
+  doc["pass"] = web_pass;
+
+  File file = SPIFFS.open("/webauth.json", "w");
+  if (!file) {
+    Serial.println("Error al crear archivo de autenticación web.");
+    return;
+  }
+
   serializeJson(doc, file);
   file.close();
 }

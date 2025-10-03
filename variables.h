@@ -29,4 +29,8 @@ int lastDownloadRecordIndex = 0;       // Último índice de registro descargado
 // Servidor web para configuración
 ESP8266WebServer webServer(80);        // Servidor web en puerto 80
 
+// Credenciales para la interfaz web
+char web_user[33] = "admin";
+char web_pass[33] = "admin";
+
 #endif // VARIABLES_H
