@@ -44,6 +44,13 @@ typedef struct {
   uint8_t pin_d1;           // Pin para Wiegand D1
   uint8_t pin_relay;        // Pin para el relé
   uint8_t pin_led;          // Pin para el LED de estado
+  bool rebootEnabled;       // Habilitar reinicio automático
+  uint8_t rebootHour;       // Hora para el reinicio automático
+  uint8_t rebootMinute;     // Minuto para el reinicio automático
+  uint16_t relayOnDuration; // Tiempo de activación del relé en ms
 } BasicConfig;
+
+// ========= MANEJO NO BLOQUEANTE ===========
+enum LedState { LED_IDLE, LED_ACCESS_GRANTED, LED_ACCESS_DENIED, LED_FORCED_UNLOCK };
 
 #endif // ESTRUCTURAS_H

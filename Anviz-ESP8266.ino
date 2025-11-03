@@ -6,7 +6,7 @@
  * para control de acceso con tarjetas.
  * 
  * Autor: Oemspot
- * Fecha: 31-03-2025
+ * Fecha: 03-11-2025
  */
 
 #include <ESP8266WiFi.h>
@@ -25,7 +25,7 @@
 // ========= CONFIGURACIÓN DEL DISPOSITIVO EMULADO ===========
 
 #define FIRMWARE_VERSION "TC401" // Versión de firmware
-#define SERIAL_NUMBER "TC401" // Número de serie (16 bytes max)
+#define SERIAL_NUMBER "TC403" // Número de serie (16 bytes max)
 
 // ========= DEFINICIONES DEL PROTOCOLO ===========
 #define STX 0xA5           // Inicio de trama
@@ -49,6 +49,12 @@ volatile unsigned long wiegandTimeoutStart = 0; // Tiempo de inicio para timeout
 #include "web.h"
 #include "utilidades.h"
 #include "almacenamiento.h"
+
+// ========= VARIABLES PARA MANEJO NO BLOQUEANTE ===========
+LedState currentLedState = LED_IDLE;
+unsigned long actionStartTime = 0;
+unsigned long ledBlinkTime = 0;
+int blinkCount = 0;
 
 // ========= MANEJADORES DE INTERRUPCIÓN PARA WIEGAND ===========
 ICACHE_RAM_ATTR void handleD0() {
@@ -198,6 +204,9 @@ void loop() {
   // Revisar si hay tarjeta Wiegand
   checkWiegandCard();
   
+  // Manejar estados de LED y relé de forma no bloqueante
+  handleLedAndRelay();
+
   // Verificar si la conexión WiFi sigue activa, reconectar si es necesario
   static unsigned long lastWifiCheck = 0;
   if (millis() - lastWifiCheck > 30000) { // Verificar cada 30 segundos
@@ -220,7 +229,34 @@ void loop() {
     setInternalTime();
     lastNtpUpdate = millis();
   }
+
+  // Comprobar si es hora de un reinicio programado
+  checkScheduledReboot();
+
+  // Guardar registros periódicamente si hay nuevos
+  static unsigned long lastSaveTime = 0;
+  if (newRecordCount > 0 && millis() - lastSaveTime > 300000) { // 5 minutos
+    saveRecords();
+    lastSaveTime = millis();
+  }
+
   delay(10); // Pequeño delay para dar tiempo a otros procesos
+}
+
+// ========= FUNCIÓN PARA REINICIO PROGRAMADO ===========
+void checkScheduledReboot() {
+  static int lastCheckedMinute = -1;
+  if (basicConfig.rebootEnabled && now() > 0) { // Asegurarse de que la hora esté sincronizada
+    int currentMinute = minute();
+    if (currentMinute != lastCheckedMinute) {
+      lastCheckedMinute = currentMinute;
+      if (hour() == basicConfig.rebootHour && minute() == basicConfig.rebootMinute) {
+        Serial.println("[REBOOT] Reinicio programado activado. Reiniciando...");
+        delay(1000);
+        ESP.restart();
+      }
+    }
+  }
 }
 
 // ========= FUNCIONES DE INICIALIZACIÓN ===========
@@ -241,6 +277,7 @@ void initializeDefaultConfig() {
   basicConfig.pin_d1 = D6;
   basicConfig.pin_relay = D1;
   basicConfig.pin_led = D0;
+  basicConfig.relayOnDuration = 2000; // 2 segundos por defecto
   
   // Número de serie por defecto
   strcpy(serialNumber, SERIAL_NUMBER);
@@ -296,31 +333,29 @@ void checkWiegandCard() {
     
     if (userIndex >= 0) {
       // Usuario encontrado
-      Serial.print("[WIEGAND] Acceso concedido a: ");
-      Serial.println((char*)users[userIndex].name);
-      
-      // Activar relé y LED
-      digitalWrite(basicConfig.pin_relay, HIGH);
-      digitalWrite(basicConfig.pin_led, HIGH);
-      
-      // Crear registro de acceso
-      createAccessRecord(userIndex);
-      
-      delay(2000);
-      
-      // Desactivar relé y LED
-      digitalWrite(basicConfig.pin_relay, LOW);
-      digitalWrite(basicConfig.pin_led, LOW);
+      if (currentLedState == LED_IDLE) { // Procesar solo si no hay otra acción en curso
+        Serial.print("[WIEGAND] Acceso concedido a: ");
+        Serial.println((char*)users[userIndex].name);
+        
+        // Iniciar estado de acceso concedido
+        currentLedState = LED_ACCESS_GRANTED;
+        actionStartTime = millis();
+        digitalWrite(basicConfig.pin_relay, HIGH);
+        digitalWrite(basicConfig.pin_led, HIGH);
+        
+        // Crear registro de acceso
+        createAccessRecord(userIndex);
+      }
     } else {
       // Usuario no encontrado
-      Serial.println("[WIEGAND] Tarjeta no autorizada");
-      
-      // Parpadeo de LED para indicar rechazo
-      for (int i = 0; i < 3; i++) {
-        digitalWrite(basicConfig.pin_led, HIGH);
-        delay(200);
-        digitalWrite(basicConfig.pin_led, LOW);
-        delay(200);
+      if (currentLedState == LED_IDLE) { // Procesar solo si no hay otra acción en curso
+        Serial.println("[WIEGAND] Tarjeta no autorizada");
+        
+        // Iniciar estado de acceso denegado
+        currentLedState = LED_ACCESS_DENIED;
+        actionStartTime = millis();
+        ledBlinkTime = millis();
+        blinkCount = 0;
       }
     }
     
@@ -330,18 +365,50 @@ void checkWiegandCard() {
   }
 }
 
+// ========= FUNCIÓN PARA MANEJO DE ESTADOS (NO BLOQUEANTE) ===========
+void handleLedAndRelay() {
+  unsigned long currentTime = millis();
+
+  switch (currentLedState) {
+    case LED_FORCED_UNLOCK: // Cae al mismo caso que el acceso concedido
+    case LED_ACCESS_GRANTED:
+      // Esperar a que pase el tiempo para desactivar el relé y el LED
+      if (currentTime - actionStartTime >= basicConfig.relayOnDuration) {
+        digitalWrite(basicConfig.pin_relay, LOW);
+        digitalWrite(basicConfig.pin_led, LOW);
+        currentLedState = LED_IDLE; // Volver al estado de reposo
+      }
+      break;
+
+    case LED_ACCESS_DENIED:
+      // Realizar 3 parpadeos (6 cambios de estado)
+      if (blinkCount < 6) {
+        if (currentTime - ledBlinkTime >= 200) { // Cada 200ms
+          digitalWrite(basicConfig.pin_led, !digitalRead(basicConfig.pin_led)); // Invertir LED
+          ledBlinkTime = currentTime;
+          blinkCount++;
+        }
+      } else {
+        // Parpadeo finalizado, apagar LED y volver a estado de reposo
+        digitalWrite(basicConfig.pin_led, LOW);
+        currentLedState = LED_IDLE;
+      }
+      break;
+
+    case LED_IDLE:
+    default:
+      // No hacer nada
+      break;
+  }
+}
+
 // ========= FUNCIÓN PARA CREAR REGISTROS DE ACCESO ===========
 void createAccessRecord(int userIndex) {
-  if (recordCount >= 500) {
-    // Si el buffer está lleno, sobrescribir los registros más antiguos
-    // Implementar una lógica circular
-    for (int i = 0; i < 499; i++) {
-      records[i] = records[i+1];
-    }
-    recordCount = 499;
-  }
-  
-  AccessRecord record;
+  // Usar recordCount como índice de escritura en un búfer circular
+  int writeIndex = recordCount % 500;
+
+  AccessRecord& record = records[writeIndex]; // Obtener referencia al registro
+
   memcpy(record.id, users[userIndex].id, 5);
   
   // Calcular timestamp (segundos desde 2000-01-01)
@@ -351,8 +418,12 @@ void createAccessRecord(int userIndex) {
   record.recordType = 0x80; // Indicar acceso exitoso (bit 7 = 1)
   memset(record.workCode, 0, 3); // Sin código de trabajo
   
-  records[recordCount++] = record;
+  recordCount++;
   newRecordCount++;
-  
-  saveRecords();
+
+  // Opcional: Guardar inmediatamente si el búfer se llena, 
+  // aunque el guardado periódico en el loop es más eficiente.
+  if (recordCount % 500 == 0) {
+    saveRecords();
+  }
 }

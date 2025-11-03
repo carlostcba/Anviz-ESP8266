@@ -44,6 +44,11 @@ void loadConfig() {
   basicConfig.pin_d1 = doc["pin_d1"] | D6;
   basicConfig.pin_relay = doc["pin_relay"] | D1;
   basicConfig.pin_led = doc["pin_led"] | D0;
+
+  // Cargar configuración de reinicio automático
+  basicConfig.rebootEnabled = doc["rebootEnabled"] | false;
+  basicConfig.rebootHour = doc["rebootHour"] | 3; // 3 AM por defecto
+  basicConfig.rebootMinute = doc["rebootMinute"] | 0;
   
   file.close();
 }
@@ -73,6 +78,11 @@ void saveConfig() {
   doc["pin_d1"] = basicConfig.pin_d1;
   doc["pin_relay"] = basicConfig.pin_relay;
   doc["pin_led"] = basicConfig.pin_led;
+
+  // Guardar configuración de reinicio automático
+  doc["rebootEnabled"] = basicConfig.rebootEnabled;
+  doc["rebootHour"] = basicConfig.rebootHour;
+  doc["rebootMinute"] = basicConfig.rebootMinute;
   
   File file = SPIFFS.open("/config.json", "w");
   if (!file) {

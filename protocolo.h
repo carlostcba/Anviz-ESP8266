@@ -7,6 +7,7 @@
 #define PROTOCOLO_H
 
 // Declaración de funciones
+void handleForcedUnlock();
 void handleGetDeviceInfo();
 void handleGetRecordInfo();
 void handleDownloadRecords(uint8_t* data, uint16_t dataLen);
@@ -19,7 +20,6 @@ void handleGetTime();
 void handleSetTime(uint8_t* data, uint16_t dataLen);
 void handleUploadRecord(uint8_t* data, uint16_t dataLen);
 void handleDeleteRecords(uint8_t* data, uint16_t dataLen);
-void handleForcedUnlock();
 void handleSetDeviceId(uint8_t* data, uint16_t dataLen);
 void handleGetDeviceTypeCode();
 void sendSimpleResponse(uint8_t cmd, uint8_t ret);
@@ -31,6 +31,10 @@ uint16_t calculateCRC16(uint8_t* data, int length);
 extern void saveConfig();
 extern void saveUsers();
 extern void saveRecords();
+
+// Declaración de variables externas para control no bloqueante
+extern LedState currentLedState;
+extern unsigned long actionStartTime;
 
 // ========= PROCESAMIENTO DE COMANDOS ANVIZ ===========
 void processAnvizCommand() {
@@ -336,8 +340,8 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
   
   // Preparar respuesta
   // Usar un buffer estático para evitar la asignación dinámica y posible fragmentación.
-  // El tamaño máximo es 12 bytes de cabecera + 25 registros * 18 bytes/registro = 462 bytes.
-  uint8_t response[12 + 25 * 18];
+  // El tamaño máximo es 12 bytes de cabecera + 25 registros * 14 bytes/registro = 362 bytes.
+  uint8_t response[12 + 25 * 14];
   // STX
   response[0] = STX;
   
@@ -354,7 +358,7 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
   response[6] = ACK_SUCCESS;
   
   // LEN
-  uint16_t responseLen = 1 + count * 18; // Cada registro ahora ocupa 18 bytes
+  uint16_t responseLen = 1 + count * 14; // Cada registro ocupa 14 bytes
   response[7] = (responseLen >> 8) & 0xFF;
   response[8] = responseLen & 0xFF;
   
@@ -365,7 +369,7 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
   // Records data
   for (int i = 0; i < count; i++) {
     int idx = startIndex + i;
-    int recordOffset = 10 + i * 18;
+    int recordOffset = 10 + i * 14;
 
     // User ID (5 bytes)
     memcpy(&response[recordOffset], records[idx].id, 5);
@@ -385,12 +389,6 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
     
     // Work code (3 bytes)
     memcpy(&response[recordOffset + 11], records[idx].workCode, 3);
-
-    // Device ID (4 bytes) - ¡ESTO ES LO QUE FALTABA!
-    response[recordOffset + 14] = (deviceId >> 24) & 0xFF;
-    response[recordOffset + 15] = (deviceId >> 16) & 0xFF;
-    response[recordOffset + 16] = (deviceId >> 8) & 0xFF;
-    response[recordOffset + 17] = deviceId & 0xFF;
   }
   
   // Calcular CRC16
@@ -903,17 +901,15 @@ void handleDeleteRecords(uint8_t* data, uint16_t dataLen) {
 
 // CMD 0x5E: Abrir cerradura sin verificar usuario
 void handleForcedUnlock() {
-  // Activar relé para abrir la puerta
-  digitalWrite(basicConfig.pin_relay, HIGH);
-  digitalWrite(basicConfig.pin_led, HIGH);
-  
-  // Preparar respuesta
-  sendSimpleResponse(0x5E, ACK_SUCCESS);
-  
-  // Esperar y desactivar el relé
-  delay(2000);
-  digitalWrite(basicConfig.pin_relay, LOW);
-  digitalWrite(basicConfig.pin_led, LOW);
+  // Solo procesar si no hay otra acción en curso
+  if (currentLedState == LED_IDLE) {
+    // Iniciar estado de apertura forzada (no bloqueante)
+    currentLedState = LED_FORCED_UNLOCK;
+    actionStartTime = millis();
+    digitalWrite(basicConfig.pin_relay, HIGH);
+    digitalWrite(basicConfig.pin_led, HIGH);
+  }
+  sendSimpleResponse(0x5E, ACK_SUCCESS); // Enviar respuesta inmediatamente
 }
 
 // CMD 0x75: Modificar ID de dispositivo de comunicación
