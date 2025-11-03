@@ -376,6 +376,9 @@ void handleDownloadRecords(uint8_t* data, uint16_t dataLen) {
     
     // Date & Time (4 bytes)
     uint32_t timestamp = records[idx].timestamp;
+    // Attempt to correct the "one day extra" issue by subtracting one day (24 hours)
+    // This assumes CrossChex is incorrectly adding a day.
+    timestamp -= (24 * 3600); // Subtract 24 hours in seconds
     response[recordOffset + 5] = (timestamp >> 24) & 0xFF;
     response[recordOffset + 6] = (timestamp >> 16) & 0xFF;
     response[recordOffset + 7] = (timestamp >> 8) & 0xFF;

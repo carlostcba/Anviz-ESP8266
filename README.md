@@ -19,7 +19,7 @@ Este proyecto convierte un microcontrolador ESP8266 en un emulador de dispositiv
 -   **Sincronización de Hora (NTP):** Mantiene el reloj interno sincronizado con un servidor NTP para asegurar la precisión de los registros de asistencia.
 -   **Configuración WiFi Sencilla:** Utiliza **WiFiManager** para una configuración inicial de la red fácil y rápida a través de un portal cautivo.
 -   **Manejo No Bloqueante:** El control del LED de estado y el relé se gestiona de forma asíncrona para no interferir con las operaciones principales.
--   **Corrección de Protocolo:** Se ha solucionado un error crítico en el formato de los paquetes de registros de asistencia, garantizando que CrossChex pueda interpretarlos y mostrarlos correctamente.
+-   **Corrección de Protocolo de Registros:** Se ha implementado una corrección para el desfase de un día en los registros de asistencia al ser descargados por CrossChex, asegurando que las fechas se muestren correctamente.
 
 ## ⚙️ Requisitos de Hardware
 
@@ -69,12 +69,27 @@ Asegúrate de instalar las siguientes librerías a través del Gestor de Librer�
 ## 📂 Estructura del Proyecto
 
 -   `Anviz-ESP8266.ino`: Lógica principal del programa, `setup()` y `loop()`.
--   `protocolo.h`: Implementación del protocolo de comunicación TCP de Anviz.
--   `web.h`: Código del servidor web, incluyendo el HTML de todas las páginas.
--   `almacenamiento.h`: Funciones para guardar y cargar datos (configuración, usuarios, registros) en SPIFFS.
--   `estructuras.h`: Definiciones de las estructuras de datos (`User`, `AccessRecord`, `BasicConfig`).
--   `variables.h`: Declaración de todas las variables globales.
--   `utilidades.h`: Funciones auxiliares (formateo de fecha/hora, búsqueda de usuarios, etc.).
+-   `protocolo.h`: Implementación del protocolo de comunicación TCP de Anviz, incluyendo el manejo de comandos y respuestas.
+-   `web.h`: Código del servidor web, incluyendo el HTML de todas las páginas y la lógica para la interfaz de administración.
+-   `almacenamiento.h`: Funciones para guardar y cargar datos (configuración, usuarios, registros) de forma persistente en la memoria flash (SPIFFS).
+-   `estructuras.h`: Definiciones de las estructuras de datos (`User`, `AccessRecord`, `BasicConfig`) utilizadas en el proyecto.
+-   `variables.h`: Declaración de todas las variables globales y externas.
+-   `utilidades.h`: Funciones auxiliares para tareas comunes como formateo de fecha/hora, búsqueda de usuarios, y manejo de LEDs/relés.
+
+## 💡 Mejoras Futuras / Ideas
+
+Aquí hay algunas ideas para futuras mejoras y expansiones del proyecto:
+
+-   **Soporte Extendido de Comandos Anviz:** Implementar más comandos del protocolo Anviz para una compatibilidad más completa, incluyendo la gestión de huellas dactilares si se integra hardware biométrico.
+-   **Actualizaciones OTA (Over-The-Air):** Permitir la actualización del firmware del ESP8266 de forma inalámbrica, facilitando el mantenimiento y la implementación de nuevas características.
+-   **Interfaz Web Mejorada:** Desarrollar una interfaz de usuario más dinámica y moderna para la administración web, posiblemente utilizando frameworks frontend ligeros o técnicas de AJAX para una mejor experiencia de usuario.
+-   **Integración con Sistemas de Automatización:** Explorar la integración con plataformas de domótica (ej. Home Assistant, MQTT) para permitir el control de acceso y la monitorización desde un sistema centralizado.
+-   **Manejo de Errores y Logging Avanzado:** Implementar un sistema de logging más robusto y configurable para facilitar la depuración y el monitoreo del dispositivo en producción.
+-   **Opciones de Sincronización de Hora:** Además de NTP, considerar la opción de configurar la hora manualmente a través de la interfaz web o mediante comandos específicos.
+-   **Seguridad de la Interfaz Web:** Implementar HTTPS para la interfaz de administración web, protegiendo las credenciales y los datos transmitidos.
+-   **Soporte para Múltiples Lectores Wiegand:** Permitir la conexión y gestión de varios lectores Wiegand para escenarios de control de acceso más complejos.
+-   **Respaldo de Batería para RTC:** Si la precisión del tiempo es crítica y el dispositivo puede sufrir cortes de energía, considerar la adición de un módulo RTC con batería de respaldo.
+-   **Optimización de Memoria y Rendimiento:** Continuar optimizando el uso de memoria y el rendimiento del ESP8266, especialmente si se añaden más características.
 
 ## 📝 Autor
 

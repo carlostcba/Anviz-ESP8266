@@ -24,8 +24,8 @@
 
 // ========= CONFIGURACIÓN DEL DISPOSITIVO EMULADO ===========
 
-#define FIRMWARE_VERSION "TC401" // Versión de firmware
-#define SERIAL_NUMBER "TC403" // Número de serie (16 bytes max)
+#define FIRMWARE_VERSION "TC403" // Versión de firmware
+#define SERIAL_NUMBER "202511" // Número de serie (16 bytes max)
 
 // ========= DEFINICIONES DEL PROTOCOLO ===========
 #define STX 0xA5           // Inicio de trama
